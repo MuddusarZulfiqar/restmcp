@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
-import { McpExclude, McpTool } from "@api-mcp/nestjs";
+import { McpExclude, McpTool } from "@restmcp/nestjs";
 import { CreateUserDto } from "./create-user.dto.js";
 
 export interface User {

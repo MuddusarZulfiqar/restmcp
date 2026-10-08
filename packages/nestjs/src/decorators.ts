@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { SetMetadata } from "@nestjs/common";
 
-export const MCP_TOOL_METADATA = "api-mcp:tool";
-export const MCP_EXCLUDE_METADATA = "api-mcp:exclude";
+export const MCP_TOOL_METADATA = "restmcp:tool";
+export const MCP_EXCLUDE_METADATA = "restmcp:exclude";
 
 export interface McpToolOverride {
   name?: string;

@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { buildManifest, generateTools } from "@api-mcp/core";
+import { buildManifest, generateTools } from "@restmcp/core";
 import { loadAppHandle, readCliConfig } from "../config.js";
 
 export async function runExport(cwd: string, outFile = "mcp-tools.json", entryOverride?: string): Promise<void> {

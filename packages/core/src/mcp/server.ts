@@ -16,7 +16,7 @@ function emitWarning(config: MCPConfig, message: string): void {
   }
   if (config.logging === false) return;
   // eslint-disable-next-line no-console
-  console.warn(`[api-mcp] WARN ${message}`);
+  console.warn(`[restmcp] WARN ${message}`);
 }
 
 function requestSize(req: IncomingMessage): number | undefined {

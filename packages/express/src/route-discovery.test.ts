@@ -1,5 +1,10 @@
 import express from "express";
 import { Router } from "express";
+// Real Express 5, aliased in package.json ("express5": "npm:express@^5.0.0") —
+// not a mock. Express 5 changed internal router structure (app._router ->
+// app.router, Layer.regexp -> opaque Layer.matchers) in ways that silently
+// broke route discovery; see the regression tests below.
+import express5 from "express5";
 import { describe, expect, it } from "vitest";
 import { discoverExpressRoutes } from "./route-discovery.js";
 
@@ -60,5 +65,36 @@ describe("discoverExpressRoutes", () => {
 
     const routes = discoverExpressRoutes(app);
     expect(routes.map(key)).toEqual(["GET /health"]);
+  });
+
+  describe("Express 5 (real express5 alias, not express4)", () => {
+    it("discovers top-level routes — regression: Express 5 renamed app._router to app.router", () => {
+      const app = express5();
+      app.get("/users", (_req: unknown, res: { json: (b: unknown) => void }) => res.json([]));
+      app.get("/users/:id", (_req: unknown, res: { json: (b: unknown) => void }) => res.json({}));
+      app.post("/users", (_req: unknown, res: { json: (b: unknown) => void }) => res.json({}));
+
+      const routes = discoverExpressRoutes(app);
+      expect(routes.map(key).sort()).toEqual(["GET /users", "GET /users/:id", "POST /users"].sort());
+    });
+
+    it("skips (does not mis-path) routes under a nested router it can't recover a prefix for, rather than crash or register a broken path", () => {
+      const app = express5();
+      const router = express5.Router();
+      router.get("/:id", (_req: unknown, res: { json: (b: unknown) => void }) => res.json({}));
+      app.use("/api/v1/products", router);
+      app.get("/health", (_req: unknown, res: { send: (b: unknown) => void }) => res.send("ok"));
+
+      // Must not throw (the original bug: `layer.regexp.toString()` on
+      // undefined crashed discovery for the whole app, not just the nested part).
+      const routes = discoverExpressRoutes(app);
+
+      // Top-level route still found.
+      expect(routes.map(key)).toContain("GET /health");
+      // Nested-router route is currently unrecoverable under Express 5 — it
+      // must be absent, never present with a wrong/incomplete path that
+      // would 404 when actually invoked.
+      expect(routes.some((r) => r.path.includes(":id"))).toBe(false);
+    });
   });
 });

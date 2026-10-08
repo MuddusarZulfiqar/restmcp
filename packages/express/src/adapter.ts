@@ -14,7 +14,7 @@ import {
   createMcpRequestHandler,
   generateTools,
   routesToOpenAPI,
-} from "@api-mcp/core";
+} from "@restmcp/core";
 import { discoverExpressRoutes } from "./route-discovery.js";
 
 export interface ManualRouteRegistration {

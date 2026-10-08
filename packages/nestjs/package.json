@@ -1,5 +1,5 @@
 {
-  "name": "@api-mcp/nestjs",
+  "name": "@restmcp/nestjs",
   "version": "0.1.0",
   "description": "NestJS adapter: converts a Nest application's controllers into MCP tools and mounts POST /mcp",
   "keywords": [
@@ -23,6 +23,16 @@
     }
   },
   "files": ["dist", "!dist/**/*.map"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MuddusarZulfiqar/restmcp.git",
+    "directory": "packages/nestjs"
+  },
+  "homepage": "https://github.com/MuddusarZulfiqar/restmcp#readme",
+  "bugs": {
+    "url": "https://github.com/MuddusarZulfiqar/restmcp/issues"
+  },
+  "author": "Muddusar Zulfiqar",
   "publishConfig": {
     "access": "public"
   },
@@ -32,7 +42,7 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@api-mcp/core": "0.1.0"
+    "@restmcp/core": "0.1.0"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",

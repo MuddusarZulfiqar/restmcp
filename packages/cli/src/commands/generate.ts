@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { buildManifest, generateTools, routesToOpenAPI } from "@api-mcp/core";
+import { buildManifest, generateTools, routesToOpenAPI } from "@restmcp/core";
 import { loadAppHandle, readCliConfig } from "../config.js";
 
 /**

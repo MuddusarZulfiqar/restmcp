@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import type { ModulesContainer } from "@nestjs/core";
 import { PATH_METADATA, METHOD_METADATA, ROUTE_ARGS_METADATA } from "@nestjs/common/constants.js";
-import type { HttpMethod, ParamDescriptor, ParamType, RouteDescriptor } from "@api-mcp/core";
+import type { HttpMethod, ParamDescriptor, ParamType, RouteDescriptor } from "@restmcp/core";
 import { dtoToJsonSchema } from "./dto-schema.js";
 import { MCP_EXCLUDE_METADATA, MCP_TOOL_METADATA, type McpToolOverride } from "./decorators.js";
 

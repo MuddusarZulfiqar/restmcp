@@ -1,5 +1,5 @@
 {
-  "name": "@api-mcp/core",
+  "name": "@restmcp/core",
   "version": "0.1.0",
   "description": "Framework-agnostic pipeline: routes -> OpenAPI -> JSON Schema -> MCP tools -> MCP server",
   "keywords": [
@@ -27,6 +27,16 @@
     "dist",
     "!dist/**/*.map"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MuddusarZulfiqar/restmcp.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/MuddusarZulfiqar/restmcp#readme",
+  "bugs": {
+    "url": "https://github.com/MuddusarZulfiqar/restmcp/issues"
+  },
+  "author": "Muddusar Zulfiqar",
   "publishConfig": {
     "access": "public"
   },

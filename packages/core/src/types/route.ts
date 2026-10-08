@@ -35,7 +35,7 @@ export interface RouteMcpOverride {
 
 /**
  * Framework-agnostic description of a single REST endpoint. Produced by
- * adapters (@api-mcp/express, @api-mcp/nestjs), consumed by @api-mcp/core.
+ * adapters (@restmcp/express, @restmcp/nestjs), consumed by @restmcp/core.
  */
 export interface RouteDescriptor {
   method: HttpMethod;

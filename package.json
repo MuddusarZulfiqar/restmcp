@@ -1,8 +1,17 @@
 {
-  "name": "api-mcp-monorepo",
+  "name": "restmcp-monorepo",
   "private": true,
   "version": "0.1.0",
   "description": "Automatically convert existing REST APIs (Express, NestJS) into MCP tools",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MuddusarZulfiqar/restmcp.git"
+  },
+  "homepage": "https://github.com/MuddusarZulfiqar/restmcp#readme",
+  "bugs": {
+    "url": "https://github.com/MuddusarZulfiqar/restmcp/issues"
+  },
+  "author": "Muddusar Zulfiqar",
   "workspaces": [
     "packages/*",
     "examples/*"

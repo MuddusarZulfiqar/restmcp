@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import type { JSONSchema, ObjectJSONSchema } from "@api-mcp/core";
+import type { JSONSchema, ObjectJSONSchema } from "@restmcp/core";
 
 const requireOptional = createRequire(import.meta.url);
 

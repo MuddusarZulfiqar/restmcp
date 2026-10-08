@@ -2,15 +2,15 @@ import { writeFile, access } from "node:fs/promises";
 import { resolve } from "node:path";
 import { CONFIG_FILE_NAME } from "../config.js";
 
-const ENTRY_STUB = `// api-mcp.entry.js
-// Point api-mcp.config.json's "entry" at this file (after it's built, if you
+const ENTRY_STUB = `// restmcp.entry.js
+// Point restmcp.config.json's "entry" at this file (after it's built, if you
 // write it in TypeScript). It must default-export a function returning an
 // AppHandle: { framework, config, routes }.
 //
 // Express example:
 //
 // import express from "express";
-// import { MCPExpress, discoverExpressRoutes } from "@api-mcp/express";
+// import { MCPExpress, discoverExpressRoutes } from "@restmcp/express";
 //
 // const config = { name: "My API", version: "1.0.0" };
 // const app = express();
@@ -25,7 +25,7 @@ const ENTRY_STUB = `// api-mcp.entry.js
 //
 // import { NestFactory } from "@nestjs/core";
 // import { ModulesContainer } from "@nestjs/core";
-// import { discoverNestRoutes } from "@api-mcp/nestjs";
+// import { discoverNestRoutes } from "@restmcp/nestjs";
 // import { AppModule } from "./app.module.js";
 //
 // const config = { name: "My API", version: "1.0.0" };
@@ -40,11 +40,11 @@ const ENTRY_STUB = `// api-mcp.entry.js
 
 export async function runInit(cwd: string): Promise<void> {
   const configPath = resolve(cwd, CONFIG_FILE_NAME);
-  const entryPath = resolve(cwd, "api-mcp.entry.js");
+  const entryPath = resolve(cwd, "restmcp.entry.js");
 
   const configExists = await exists(configPath);
   if (!configExists) {
-    await writeFile(configPath, JSON.stringify({ entry: "./api-mcp.entry.js" }, null, 2) + "\n", "utf-8");
+    await writeFile(configPath, JSON.stringify({ entry: "./restmcp.entry.js" }, null, 2) + "\n", "utf-8");
     console.log(`Created ${CONFIG_FILE_NAME}`);
   } else {
     console.log(`${CONFIG_FILE_NAME} already exists, leaving it as-is.`);
@@ -53,12 +53,12 @@ export async function runInit(cwd: string): Promise<void> {
   const entryExists = await exists(entryPath);
   if (!entryExists) {
     await writeFile(entryPath, ENTRY_STUB, "utf-8");
-    console.log("Created api-mcp.entry.js (edit this to point at your actual app)");
+    console.log("Created restmcp.entry.js (edit this to point at your actual app)");
   } else {
-    console.log("api-mcp.entry.js already exists, leaving it as-is.");
+    console.log("restmcp.entry.js already exists, leaving it as-is.");
   }
 
-  console.log("\nNext: edit api-mcp.entry.js, then run `npx api-mcp inspect`.");
+  console.log("\nNext: edit restmcp.entry.js, then run `npx restmcp inspect`.");
 }
 
 async function exists(path: string): Promise<boolean> {

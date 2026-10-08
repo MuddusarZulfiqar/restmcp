@@ -1,4 +1,4 @@
-# Requirements — `@api-mcp` (REST → MCP Tool Generator)
+# Requirements — `@restmcp` (REST → MCP Tool Generator)
 
 Source: original product brief from the user (2026-10-09). This document is the
 canonical requirements spec. Architecture decisions live in `architecture.md`.
@@ -16,7 +16,7 @@ NestJS REST API with minimal configuration — no hand-written MCP tool JSON per
 
 ```ts
 import express from "express";
-import { MCPExpress } from "@api-mcp/express";
+import { MCPExpress } from "@restmcp/express";
 
 const app = express();
 MCPExpress.setup(app, { name: "My API", version: "1.0.0" });
@@ -26,7 +26,7 @@ app.listen(3000);
 ### NestJS
 
 ```ts
-import { MCPModule } from "@api-mcp/nestjs";
+import { MCPModule } from "@restmcp/nestjs";
 
 @Module({
   imports: [MCPModule.forRoot({ name: "My API", version: "1.0.0" })],
@@ -115,7 +115,7 @@ that core converts to one); everything downstream of that is framework-agnostic.
     `@modelcontextprotocol/sdk` server + its Streamable HTTP transport. No hand-rolled
     JSON-RPC framing.
 
-13. **CLI** (`api-mcp`) — `init`, `generate`, `inspect`, `export` subcommands as
+13. **CLI** (`restmcp`) — `init`, `generate`, `inspect`, `export` subcommands as
     specified in the brief (human-readable `inspect` summary; `export` writes
     `mcp-tools.json` derived from live app metadata, never hand-maintained).
 
@@ -129,7 +129,7 @@ that core converts to one); everything downstream of that is framework-agnostic.
 - TypeScript, strict mode, across every package.
 - Unit + integration tests (Express app fixtures, NestJS testing module fixtures).
 - Node.js LTS support (currently 20.x and 22.x; dev box runs 24.x).
-- No framework-specific imports inside `@api-mcp/core`.
+- No framework-specific imports inside `@restmcp/core`.
 - Dependency injection where it fits naturally (NestJS adapter uses Nest's DI).
 - Safe error handling: a broken tool/schema must not crash the host process; it
   surfaces as a tool-generation warning and the route is skipped.

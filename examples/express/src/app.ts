@@ -1,6 +1,6 @@
 import express, { type Application } from "express";
-import { MCPExpress } from "@api-mcp/express";
-import type { MCPConfig } from "@api-mcp/core";
+import { MCPExpress } from "@restmcp/express";
+import type { MCPConfig } from "@restmcp/core";
 
 export interface Book {
   id: string;

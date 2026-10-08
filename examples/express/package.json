@@ -2,17 +2,17 @@
   "name": "example-express",
   "private": true,
   "version": "0.1.0",
-  "description": "Example Express app with @api-mcp/express wired in",
+  "description": "Example Express app with @restmcp/express wired in",
   "type": "module",
   "scripts": {
     "build": "tsc --build",
     "start": "node dist/server.js",
     "dev": "tsc --build && node dist/server.js",
-    "inspect": "npm run build && npx api-mcp inspect"
+    "inspect": "npm run build && npx restmcp inspect"
   },
   "dependencies": {
-    "@api-mcp/core": "0.1.0",
-    "@api-mcp/express": "0.1.0",
+    "@restmcp/core": "0.1.0",
+    "@restmcp/express": "0.1.1",
     "express": "^4.21.1"
   },
   "devDependencies": {

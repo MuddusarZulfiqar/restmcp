@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { MCPModule } from "@api-mcp/nestjs";
+import { MCPModule } from "@restmcp/nestjs";
 import { UsersController } from "./users/users.controller.js";
 
 export const mcpConfig = {

@@ -1,4 +1,4 @@
-# Architecture — `@api-mcp`
+# Architecture — `@restmcp`
 
 Companion to `requirement.md` (what/why) and `CLAUDE.md` (contributor workflow).
 This document is the *how*: package boundaries, data flow, and the key types that
@@ -8,7 +8,7 @@ cross them.
 
 ```
 ┌─────────────────────────┐   ┌─────────────────────────┐
-│   @api-mcp/express       │   │   @api-mcp/nestjs        │   ← framework adapters
+│   @restmcp/express       │   │   @restmcp/nestjs        │   ← framework adapters
 │   (route discovery via   │   │   (route discovery via   │     (know their framework,
 │    app._router walk)     │   │    Nest Reflector/        │     nothing about MCP)
 │                          │   │    ModulesContainer)      │
@@ -17,7 +17,7 @@ cross them.
             └───────────────┬───────────────┘
                              ▼
                    ┌───────────────────┐
-                   │   @api-mcp/core    │   ← framework-agnostic
+                   │   @restmcp/core    │   ← framework-agnostic
                    │                    │
                    │  RouteDescriptor[] │
                    │        ↓           │
@@ -60,9 +60,9 @@ Fastify/Koa adapter reuse 100% of `core` and `mcp/` untouched.
 ## 2. Package map
 
 ```
-api-mcp/
+restmcp/
 ├── packages/
-│   ├── core/            @api-mcp/core        — framework-agnostic pipeline
+│   ├── core/            @restmcp/core        — framework-agnostic pipeline
 │   │   └── src/
 │   │       ├── types/            shared interfaces (RouteDescriptor, ToolDefinition, MCPConfig, ...)
 │   │       ├── openapi/          RouteDescriptor[] -> OpenAPIDocument
@@ -74,13 +74,13 @@ api-mcp/
 │   │       ├── mcp/               @modelcontextprotocol/sdk Server wiring, transport, AJV call validation
 │   │       └── index.ts
 │   │
-│   ├── express/         @api-mcp/express
+│   ├── express/         @restmcp/express
 │   │   └── src/
 │   │       ├── route-discovery.ts   walks app._router -> RouteDescriptor[]
 │   │       ├── adapter.ts           MCPExpress.setup()/tool()/register()/exclude()
 │   │       └── index.ts
 │   │
-│   ├── nestjs/          @api-mcp/nestjs
+│   ├── nestjs/          @restmcp/nestjs
 │   │   └── src/
 │   │       ├── scanner.ts           ModulesContainer + MetadataScanner -> RouteDescriptor[]
 │   │       ├── dto-schema.ts        DTO class -> JSON Schema (class-validator aware)
@@ -88,7 +88,7 @@ api-mcp/
 │   │       ├── module.ts            MCPModule.forRoot() / forRootAsync()
 │   │       └── index.ts
 │   │
-│   └── cli/             api-mcp (bin)
+│   └── cli/             restmcp (bin)
 │       └── src/
 │           ├── commands/{init,generate,inspect,export}.ts
 │           └── index.ts
@@ -102,7 +102,7 @@ api-mcp/
 └── README.md
 ```
 
-## 3. Key cross-package types (`@api-mcp/core/types`)
+## 3. Key cross-package types (`@restmcp/core/types`)
 
 ```ts
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";

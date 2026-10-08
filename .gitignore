@@ -3,5 +3,6 @@ dist/
 *.tsbuildinfo
 coverage/
 .env
+.npmrc
 mcp-tools.json
 openapi.generated.json

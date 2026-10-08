@@ -41,7 +41,7 @@ function emit(config: MCPConfig, entry: LogEntry): void {
   }
   // logging: true -> stderr, keeps stdout clean for CLI JSON output.
   // eslint-disable-next-line no-console
-  console.error(`[api-mcp] ${entry.level.toUpperCase()} ${entry.message}`);
+  console.error(`[restmcp] ${entry.level.toUpperCase()} ${entry.message}`);
 }
 
 /**

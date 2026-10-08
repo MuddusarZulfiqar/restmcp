@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { MCPConfig, RouteDescriptor } from "@api-mcp/core";
+import type { MCPConfig, RouteDescriptor } from "@restmcp/core";
 
-export const CONFIG_FILE_NAME = "api-mcp.config.json";
+export const CONFIG_FILE_NAME = "restmcp.config.json";
 
 export interface CliConfigFile {
   /**
@@ -34,7 +34,7 @@ export async function readCliConfig(cwd: string): Promise<CliConfigFile> {
     raw = await readFile(path, "utf-8");
   } catch {
     throw new Error(
-      `Could not find ${CONFIG_FILE_NAME} in ${cwd}. Run "npx api-mcp init" first, or pass --entry directly.`,
+      `Could not find ${CONFIG_FILE_NAME} in ${cwd}. Run "npx restmcp init" first, or pass --entry directly.`,
     );
   }
   return JSON.parse(raw) as CliConfigFile;

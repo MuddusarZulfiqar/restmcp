@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ModulesContainer } from "@nestjs/core";
-import { discoverNestRoutes } from "@api-mcp/nestjs";
+import { discoverNestRoutes } from "@restmcp/nestjs";
 import { AppModule, mcpConfig } from "./app.module.js";
 
 export default async function getApiMcpApp() {

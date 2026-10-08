@@ -1,5 +1,5 @@
 import type { Application } from "express";
-import type { HttpMethod, ParamDescriptor, RouteDescriptor } from "@api-mcp/core";
+import type { HttpMethod, ParamDescriptor, RouteDescriptor } from "@restmcp/core";
 
 /**
  * Express's Layer objects don't store their mount path as a plain string
@@ -25,7 +25,8 @@ interface ExpressKey {
 interface ExpressLayer {
   name?: string;
   path?: string;
-  regexp: RegExp;
+  /** Express 4 only — Express 5 replaced this with opaque `matchers` (see recoverMountSegment). */
+  regexp?: RegExp;
   keys: ExpressKey[];
   route?: ExpressRoute;
   handle?: { stack?: ExpressLayer[] } & ((...args: unknown[]) => unknown);
@@ -45,6 +46,12 @@ function hasParamPlaceholders(source: string): boolean {
 }
 
 function recoverMountSegment(layer: ExpressLayer): string | null {
+  // Express 5 (path-to-regexp v8) no longer exposes a `regexp` to introspect —
+  // mount layers only carry an opaque `matchers` function, which doesn't
+  // reveal its compiled pattern. Recovering the prefix isn't currently
+  // possible there; callers must skip (not guess) when this returns null.
+  if (!layer.regexp) return null;
+
   let source = layer.regexp.toString();
   let match = MOUNT_PATH_REGEXP.exec(source);
   if (!match) return null;
@@ -108,8 +115,14 @@ function walkStack(stack: ExpressLayer[], basePath: string, out: RouteDescriptor
     if (!nestedStack) continue;
 
     const mountSegment = recoverMountSegment(layer);
-    const nestedBase = mountSegment ? joinPath(basePath, mountSegment) : basePath;
-    walkStack(nestedStack, nestedBase, out);
+    if (!mountSegment) {
+      // Can't recover this mount's prefix (e.g. Express 5 — see
+      // recoverMountSegment) — skip routes under it rather than register
+      // them with a silently wrong/incomplete path that would 404 when
+      // actually invoked. Use mcp.register() for these routes instead.
+      continue;
+    }
+    walkStack(nestedStack, joinPath(basePath, mountSegment), out);
   }
 }
 
@@ -120,9 +133,28 @@ function walkStack(stack: ExpressLayer[], basePath: string, out: RouteDescriptor
  * stay empty unless supplied via MCPExpress.tool()/register() overrides (see
  * adapter.ts) or an OpenAPI document the developer provides.
  */
+function getRootStack(app: Application): ExpressLayer[] | undefined {
+  const appWithRouter = app as unknown as { _router?: { stack?: ExpressLayer[] }; router?: { stack?: ExpressLayer[] } };
+
+  // Express 4 exposes the root router as `app._router` (undefined until the
+  // first route is registered, since it's created lazily).
+  if (appWithRouter._router?.stack) return appWithRouter._router.stack;
+
+  // Express 5 renamed it to `app.router` and dropped `_router` entirely —
+  // but Express 4 *also* still has an `app.router` property, kept only as a
+  // deprecated accessor that throws on access ("'app.router' is deprecated!").
+  // So this must be a try, not a plain `??`: on Express 4 with zero routes
+  // registered yet, reading `.router` at all throws, and the right answer
+  // here is still "no routes", not an uncaught exception.
+  try {
+    return appWithRouter.router?.stack;
+  } catch {
+    return undefined;
+  }
+}
+
 export function discoverExpressRoutes(app: Application): RouteDescriptor[] {
-  const router = (app as unknown as { _router?: { stack?: ExpressLayer[] } })._router;
-  const stack = router?.stack;
+  const stack = getRootStack(app);
   if (!stack) return [];
 
   const routes: RouteDescriptor[] = [];

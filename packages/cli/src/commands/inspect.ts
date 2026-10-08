@@ -1,4 +1,4 @@
-import { generateTools } from "@api-mcp/core";
+import { generateTools } from "@restmcp/core";
 import { loadAppHandle, readCliConfig } from "../config.js";
 
 const FRAMEWORK_LABEL: Record<string, string> = { express: "Express", nestjs: "NestJS" };

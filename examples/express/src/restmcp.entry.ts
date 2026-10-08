@@ -1,4 +1,4 @@
-import { discoverExpressRoutes } from "@api-mcp/express";
+import { discoverExpressRoutes } from "@restmcp/express";
 import { createApp, mcpConfig } from "./app.js";
 
 export default function getApiMcpApp() {

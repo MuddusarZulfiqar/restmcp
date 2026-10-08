@@ -12,7 +12,7 @@ import {
   createMcpRequestHandler,
   generateTools,
   routesToOpenAPI,
-} from "@api-mcp/core";
+} from "@restmcp/core";
 import { discoverNestRoutes } from "./scanner.js";
 
 export interface NestMcpConfig extends MCPConfig {

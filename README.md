@@ -1,23 +1,17 @@
-# @api-mcp
+# @restmcp
 
 Automatically convert an existing Express or NestJS REST API into [Model Context
 Protocol](https://modelcontextprotocol.io) (MCP) tools, so AI clients (Claude,
 other MCP-aware agents) can call your API directly — without you hand-writing a
 single MCP tool definition.
 
-> **Status: pre-release, not yet published to npm.** The commands below show
-> the intended end-state developer experience once `@api-mcp/express` /
-> `@api-mcp/nestjs` / `api-mcp` are published. Until then, see
-> [Installation → Using it right now, from source](#installation) for how to
-> run this against your own app from a clone of this repo.
-
 ```bash
-npm install @api-mcp/express express
+npm install @restmcp/express express
 ```
 
 ```ts
 import express from "express";
-import { MCPExpress } from "@api-mcp/express";
+import { MCPExpress } from "@restmcp/express";
 
 const app = express();
 // ...your existing routes...
@@ -68,26 +62,29 @@ import `MCPModule`. It is entirely opt-in.
 AI coding assistants and agents increasingly talk to tools over MCP rather
 than ad-hoc function-calling schemas. If your API already exists as a REST
 service, you shouldn't have to maintain a second, hand-written copy of its
-interface just so an AI client can use it. `@api-mcp` keeps the MCP surface
+interface just so an AI client can use it. `@restmcp` keeps the MCP surface
 generated and in sync with your actual routes, DTOs, and validation rules.
 
 ## Installation
 
-Node.js 20+ required for every package below. `@api-mcp/core` is a shared
+Node.js 20+ required for every package below. `@restmcp/core` is a shared
 transitive dependency — you never install it directly.
-
-### Once published to npm
 
 ```bash
 # Express
-npm install @api-mcp/express
+npm install @restmcp/express
 
 # NestJS
-npm install @api-mcp/nestjs
+npm install @restmcp/nestjs
 
 # CLI (inspect/export/generate, optional)
-npm install -D api-mcp
+npm install -D @muddusarzulfiqar/restmcp
 ```
+
+The CLI's package name is scoped (`@muddusarzulfiqar/restmcp`) but its
+command stays the short `restmcp` — once installed, `npx restmcp inspect`
+(or just `restmcp inspect` with a global install) works as shown throughout
+this README.
 
 Peer dependencies (`express`, or `@nestjs/common`/`@nestjs/core`) are not
 bundled — install them as you normally would if your app doesn't already have
@@ -96,48 +93,15 @@ installed, their decorators drive DTO schema generation; not installed, DTO
 fields still work but fall back to a permissive object schema (see
 [NestJS setup](#nestjs-setup)).
 
-### Using it right now, from source
-
-Since these packages aren't on npm yet, point your app at this repo directly
-instead of running `npm install @api-mcp/...`:
-
-```bash
-git clone <this-repo> api-mcp && cd api-mcp
-npm install
-npm run build
-```
-
-Then, from your own app's project:
-
-```bash
-# Use an absolute path. npm installs this as a symlink to the package
-# directory — no publishing, no registry involved.
-npm install /absolute/path/to/api-mcp/packages/express
-# and/or:
-npm install /absolute/path/to/api-mcp/packages/nestjs
-npm install /absolute/path/to/api-mcp/packages/cli   # for the `api-mcp` CLI
-```
-
-This works (verified) even though `@api-mcp/express`/`@api-mcp/nestjs`
-depend on `@api-mcp/core` by plain version number, not a `file:`/`workspace:`
-reference: npm installs a symlink, so when Node resolves `@api-mcp/core`
-*from inside* that symlinked package, it follows the link to its real path
-inside this repo first — and finds `@api-mcp/core` there via the monorepo's
-own workspace-linked `node_modules`. It relies on that symlink, so it won't
-work if you `npm pack` one of these packages into a tarball and install that
-instead (that copies files rather than linking them).
-
-Everything else in this README (the Express/NestJS setup, config, CLI usage)
-works identically either way — only how the package *got onto disk* differs.
-If you're developing *inside* this monorepo (e.g. extending `examples/express`
-or `examples/nestjs`), no install step is needed at all — npm workspaces
-already link `@api-mcp/*` for you; see [Contributing](#contributing).
+Developing against a local checkout instead (contributing, or trying an
+unreleased change)? See [Contributing](#contributing) — npm workspaces link
+`@restmcp/*` automatically inside this repo, no install step needed.
 
 ## Express setup
 
 ```ts
 import express from "express";
-import { MCPExpress } from "@api-mcp/express";
+import { MCPExpress } from "@restmcp/express";
 
 const app = express();
 app.use(express.json());
@@ -178,15 +142,21 @@ The same `tool`/`exclude`/`register` calls are also available as static
 for the common single-app-per-process case shown in the example above.
 
 **Automatic discovery**: works by walking Express's own router stack
-(`app._router`), including routes added through nested `Router()` instances —
-no regex/source scanning. If a particular mounting pattern can't be resolved
-automatically, use `mcp.register()` as shown above.
+(`app._router` on Express 4, `app.router` on Express 5 — both supported) —
+no regex/source scanning. Top-level routes (`app.get(...)` etc.) are always
+discovered. Routes added through a nested `Router()` instance
+(`app.use(path, router)`) are also discovered **on Express 4**; on Express 5,
+recovering a nested router's mount prefix isn't currently possible (Express 5
+replaced the introspectable compiled regexp Express 4 exposed with an opaque
+matcher function with no way to recover the original path pattern), so those
+routes are safely skipped rather than registered with a wrong path — use
+`mcp.register()` for them on Express 5 in the meantime.
 
 ## NestJS setup
 
 ```ts
 import { Module } from "@nestjs/common";
-import { MCPModule } from "@api-mcp/nestjs";
+import { MCPModule } from "@restmcp/nestjs";
 
 @Module({
   imports: [
@@ -221,7 +191,7 @@ Without it, DTO fields fall back to a permissive object schema.
 Per-route control uses decorators instead of the Express handle's methods:
 
 ```ts
-import { McpExclude, McpTool } from "@api-mcp/nestjs";
+import { McpExclude, McpTool } from "@restmcp/nestjs";
 
 @Get(":id")
 @McpTool({ description: "Look up a customer by id" })
@@ -392,11 +362,16 @@ invocation.** Each stage rejects before the next one does any work.
 
 ## CLI
 
+After `npm install -D @muddusarzulfiqar/restmcp` (see [Installation](#installation)),
+the installed `restmcp` command is what `npx` resolves below — a bare
+`npx restmcp ...` with nothing installed first would instead try to fetch an
+unrelated package literally named `restmcp` from npm, which isn't this CLI.
+
 ```bash
-npx api-mcp init      # scaffold api-mcp.config.json + an entry-point stub
-npx api-mcp inspect    # print discovered routes / generated tools / exclusions
-npx api-mcp generate   # write mcp-tools.json + openapi.generated.json
-npx api-mcp export     # write mcp-tools.json only
+npx restmcp init      # scaffold restmcp.config.json + an entry-point stub
+npx restmcp inspect    # print discovered routes / generated tools / exclusions
+npx restmcp generate   # write mcp-tools.json + openapi.generated.json
+npx restmcp export     # write mcp-tools.json only
 ```
 
 `inspect` output:
@@ -414,11 +389,11 @@ MCP endpoint:
   POST /mcp  (mount path — host/port depend on where you run the app)
 ```
 
-The CLI reads `api-mcp.config.json` (`{ "entry": "./dist/api-mcp.entry.js" }`)
+The CLI reads `restmcp.config.json` (`{ "entry": "./dist/restmcp.entry.js" }`)
 and dynamically imports that built entry module, which must default-export a
 function returning `{ framework, config, routes }` — see
-`examples/express/src/api-mcp.entry.ts` and
-`examples/nestjs/src/api-mcp.entry.ts` for working examples. This keeps the
+`examples/express/src/restmcp.entry.ts` and
+`examples/nestjs/src/restmcp.entry.ts` for working examples. This keeps the
 CLI reflecting the exact same config your running server uses, rather than a
 second copy that can drift.
 
@@ -467,7 +442,7 @@ curl -X POST http://localhost:3000/mcp \
 
 ## Troubleshooting
 
-- **A route isn't showing up as a tool.** Run `npx api-mcp inspect` — it
+- **A route isn't showing up as a tool.** Run `npx restmcp inspect` — it
   lists every excluded route with a reason (config exclude pattern,
   `allowMutations`, per-route `mcp: false`/`@McpExclude()`). If it's not
   excluded but still missing, Express route discovery couldn't resolve a
@@ -499,15 +474,15 @@ Express/NestJS → Route Discovery → OpenAPI → JSON Schema → Naming →
 Permissions → MCP Tool Definitions → MCP Server (POST /mcp) → MCP Client
 ```
 
-- `@api-mcp/core` — framework-agnostic. Never imports Express or NestJS.
+- `@restmcp/core` — framework-agnostic. Never imports Express or NestJS.
   Owns the OpenAPI conversion, JSON Schema generation, naming/collision
   resolution, permission filtering, auth strategies, and the actual MCP
   transport (wrapping `@modelcontextprotocol/sdk`).
-- `@api-mcp/express` / `@api-mcp/nestjs` — adapters. Know their framework,
+- `@restmcp/express` / `@restmcp/nestjs` — adapters. Know their framework,
   nothing about MCP. Produce `RouteDescriptor[]`, hand it to core, and mount
   whatever HTTP handler core's MCP layer returns.
 - `packages/cli` — `inspect`/`generate`/`export`/`init`, built on the same
-  `@api-mcp/core` functions the adapters use.
+  `@restmcp/core` functions the adapters use.
 
 This separation is what lets a future Fastify/Koa adapter reuse the entire
 pipeline unchanged — it only has to implement route discovery and hand core a
@@ -536,14 +511,20 @@ new config fields go, why route discovery never uses regex/source scanning).
 
 ### Publishing (for maintainers)
 
-Not yet published — this repo has no `repository`/`homepage`/`bugs` URLs set
-in any `package.json` yet because there's no public git remote to point them
-at. Add those once one exists (`packages/core`, `packages/express`,
-`packages/nestjs`, `packages/cli`), then:
+Published at `0.1.0`: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core),
+[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express),
+[`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs), and the
+CLI as [`@muddusarzulfiqar/restmcp`](https://www.npmjs.com/package/@muddusarzulfiqar/restmcp)
+(its bin command is still the short `restmcp` — see [CLI](#cli); the package
+itself had to be scoped under a personal npm username because the unscoped
+name `restmcp` collided with an existing, unrelated package's name-similarity
+check).
+
+For a future release:
 
 ```bash
-# bump versions (keep @api-mcp/* in lockstep; they're pinned to exact
-# versions of each other, e.g. @api-mcp/express depends on "@api-mcp/core": "0.1.0")
+# bump versions (keep @restmcp/* in lockstep; they're pinned to exact
+# versions of each other, e.g. @restmcp/express depends on "@restmcp/core": "0.1.0")
 npm version <new-version> -w packages/core -w packages/express -w packages/nestjs -w packages/cli
 
 npm run build
@@ -555,9 +536,13 @@ npm publish -w packages/nestjs
 npm publish -w packages/cli
 ```
 
-`@api-mcp/core`, `@api-mcp/express`, and `@api-mcp/nestjs` are scoped
-packages published with `publishConfig.access: "public"` already set, so a
-plain `npm publish` won't default to a private publish attempt.
+`@restmcp/core`, `@restmcp/express`, `@restmcp/nestjs`, and the CLI
+(`@muddusarzulfiqar/restmcp`) all have `publishConfig.access: "public"`
+already set, so a plain `npm publish` won't default to a private publish
+attempt. Publishing requires either 2FA enabled on the npm account (an OTP
+per publish) or a granular access token explicitly created with permission
+to bypass 2FA — a token without that flag gets rejected with a 403 even if
+it otherwise has write access.
 
 ## License
 
