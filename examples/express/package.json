@@ -11,8 +11,8 @@
     "inspect": "npm run build && npx restmcp inspect"
   },
   "dependencies": {
-    "@restmcp/core": "0.1.0",
-    "@restmcp/express": "0.1.1",
+    "@restmcp/core": "0.1.1",
+    "@restmcp/express": "0.1.2",
     "express": "^4.21.1"
   },
   "devDependencies": {

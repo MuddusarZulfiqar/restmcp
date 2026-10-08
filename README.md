@@ -511,14 +511,17 @@ new config fields go, why route discovery never uses regex/source scanning).
 
 ### Publishing (for maintainers)
 
-Published at `0.1.0`: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core),
-[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express),
-[`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs), and the
-CLI as [`@muddusarzulfiqar/restmcp`](https://www.npmjs.com/package/@muddusarzulfiqar/restmcp)
-(its bin command is still the short `restmcp` — see [CLI](#cli); the package
-itself had to be scoped under a personal npm username because the unscoped
-name `restmcp` collided with an existing, unrelated package's name-similarity
-check).
+Published: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core) `0.1.1`,
+[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express) `0.1.2`
+(0.1.1 had a real bug — see `CLAUDE.md` — fixed and verified against a real
+Express 5 install before republishing),
+[`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs) `0.1.1`,
+and the CLI as
+[`@muddusarzulfiqar/restmcp`](https://www.npmjs.com/package/@muddusarzulfiqar/restmcp)
+`0.1.1` (its bin command is still the short `restmcp` — see [CLI](#cli); the
+package itself had to be scoped under a personal npm username because the
+unscoped name `restmcp` collided with an existing, unrelated package's
+name-similarity check).
 
 For a future release:
 

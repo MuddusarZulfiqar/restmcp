@@ -1,6 +1,6 @@
 {
   "name": "@muddusarzulfiqar/restmcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for @restmcp: inspect, generate, and export MCP tool definitions from an existing Express/NestJS app",
   "keywords": [
     "mcp",
@@ -24,7 +24,10 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist", "!dist/**/*.map"],
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MuddusarZulfiqar/restmcp.git",
@@ -44,7 +47,7 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@restmcp/core": "0.1.0",
+    "@restmcp/core": "0.1.1",
     "commander": "^12.1.0"
   },
   "devDependencies": {
