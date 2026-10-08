@@ -1,0 +1,28 @@
+{
+  "name": "api-mcp-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Automatically convert existing REST APIs (Express, NestJS) into MCP tools",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --build --dry",
+    "clean": "npm run clean --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.16.13",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^2.1.4"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

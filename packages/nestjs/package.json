@@ -1,0 +1,66 @@
+{
+  "name": "@api-mcp/nestjs",
+  "version": "0.1.0",
+  "description": "NestJS adapter: converts a Nest application's controllers into MCP tools and mounts POST /mcp",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "nestjs",
+    "nest",
+    "ai",
+    "llm",
+    "agent",
+    "tools",
+    "rest-api"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "!dist/**/*.map"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rimraf dist *.tsbuildinfo",
+    "test": "vitest run --root ../.."
+  },
+  "dependencies": {
+    "@api-mcp/core": "0.1.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0 || ^11.0.0",
+    "@nestjs/core": "^10.0.0 || ^11.0.0",
+    "reflect-metadata": "^0.1.13 || ^0.2.0",
+    "rxjs": "^7.8.1",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1"
+  },
+  "peerDependenciesMeta": {
+    "class-validator": { "optional": true },
+    "class-transformer": { "optional": true }
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.4.7",
+    "@nestjs/core": "^10.4.7",
+    "@nestjs/platform-express": "^10.4.7",
+    "@nestjs/testing": "^10.4.7",
+    "class-validator": "^0.14.1",
+    "express": "^4.21.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
