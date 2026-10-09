@@ -25,6 +25,7 @@ That's it — `POST /mcp` is now live and every eligible route is an MCP tool.
 
 - [What it does](#what-it-does)
 - [Why MCP](#why-mcp)
+- [Quick start](#quick-start)
 - [Installation](#installation)
 - [Express setup](#express-setup)
 - [NestJS setup](#nestjs-setup)
@@ -64,6 +65,167 @@ than ad-hoc function-calling schemas. If your API already exists as a REST
 service, you shouldn't have to maintain a second, hand-written copy of its
 interface just so an AI client can use it. `@restmcp` keeps the MCP surface
 generated and in sync with your actual routes, DTOs, and validation rules.
+
+## Quick start
+
+The sections below this one are reference material, organized by topic. This
+section is the thing to actually *follow* the first time: install → wire in
+→ verify it worked → fix the one thing that confuses almost everyone → add
+auth. Five steps, in order, each with something to run.
+
+(This walks through Express. NestJS is the same shape — swap step 2 for
+[NestJS setup](#nestjs-setup) — everything else applies identically.)
+
+### 1. Install
+
+```bash
+npm install @restmcp/express
+```
+
+### 2. Wire it in
+
+Add this *after* your existing routes are registered — order matters, since
+discovery walks whatever's already on the router when `setup()` runs:
+
+```ts
+import { MCPExpress } from "@restmcp/express";
+// const { MCPExpress } = require("@restmcp/express"); // CommonJS
+
+// ...your app.get/post/etc. calls above this line...
+
+const mcp = MCPExpress.setup(app, {
+  name: "my-api",
+  version: "1.0.0",
+});
+
+app.listen(3000);
+```
+
+That's the entire wiring step — `POST /mcp` is live.
+
+### 3. Verify it actually worked
+
+Start your server, then from another terminal:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "content-type: application/json" \
+  -H "accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+A working setup returns a JSON-RPC response with `result.tools` — one entry
+per route it could discover. Nothing there, or a connection error, means
+`setup()` isn't wired into the app that's actually listening (check you're
+hitting the right port, and that `app.listen()` is the same `app` you called
+`MCPExpress.setup()` on).
+
+If you have the CLI installed (`npm install -D @muddusarzulfiqar/restmcp`),
+`npx restmcp inspect` gives you the same information as a readable summary
+instead of raw JSON — see [CLI](#cli) for its one-time setup file.
+
+Pick a tool name from the response and call it:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "content-type: application/json" \
+  -H "accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"<tool name from step 3>","arguments":{}}}'
+```
+
+### 4. Fix empty schemas on body and query routes (read this first)
+
+Read this before concluding something's broken. Plain Express has **no
+built-in way to know** what fields a route's body or query string expects —
+no DTO, no decorator, nothing for us to introspect (NestJS doesn't have this
+problem — see the note at the end of this step). So for routes shaped like:
+
+```ts
+app.post("/users", (req, res) => { /* reads req.body.name, req.body.email */ });
+app.get("/users", (req, res) => { /* reads req.query.search */ });
+```
+
+`tools/list` will show `create_user` and `list_users` with an **empty**
+`inputSchema` (`"properties": {}`). That's expected, not a bug. Calling them
+with no arguments reaches your handler with an empty body/query — which may
+quietly do the wrong thing rather than error.
+
+Fix it with `mcp.register()` — it overrides the auto-discovered tool for the
+same route (even though discovery already found it):
+
+```ts
+mcp.register({
+  method: "POST",
+  path: "/users",
+  name: "create_user",
+  description: "Create a user",
+  inputSchema: {
+    type: "object",
+    properties: { name: { type: "string" }, email: { type: "string", format: "email" } },
+    required: ["name", "email"],
+  },
+});
+
+mcp.register({
+  method: "GET",
+  path: "/users",
+  name: "list_users",
+  description: "List users",
+  inputSchema: { type: "object", properties: { search: { type: "string" } }, required: [] },
+  // Required for GET/HEAD: anything in `inputSchema.properties` not listed
+  // here as a path/query param is treated as body-destined and never
+  // reaches a GET/HEAD request. See mcp.register()'s full docs below.
+  params: [{ name: "search", in: "query", type: "string", required: false }],
+});
+```
+
+If you already validate these routes with Joi, Zod, `express-validator`, or
+similar, that validation schema is your source of truth for writing the
+`inputSchema` above — translate its fields directly rather than guessing.
+
+**NestJS**: this entire step doesn't apply. `@Query()`/`@Body()` decorators
+and DTO classes already tell `@restmcp/nestjs` exactly which fields are
+which — see [NestJS setup](#nestjs-setup).
+
+**One more real gap to know about**: routes that accept file uploads
+(`multipart/form-data`, e.g. via `multer`) get discovered as tools, but
+calling them through MCP will always fail — tool arguments are JSON, and
+there's currently no way to send a file through one. Exclude them rather
+than leaving a tool that just errors on every call:
+
+```ts
+mcp.exclude("/upload-file");
+```
+
+### 5. Add auth before you deploy anywhere real
+
+With no `auth` configured, **every discovered tool is callable by anyone who
+can reach `/mcp`** — you'll see a startup warning saying exactly this, every
+time the process starts. At minimum:
+
+```ts
+MCPExpress.setup(app, {
+  name: "my-api",
+  version: "1.0.0",
+  auth: {
+    type: "bearer",
+    validate: async ({ credential }) => isValidToken(credential), // however your app already verifies tokens
+  },
+});
+```
+
+If your routes have their *own* auth middleware expecting the same
+credential (e.g. the MCP caller's bearer token is literally your app's JWT),
+also set `forwardCredential: true` — without it, those routes will 401 on
+every call even once MCP-level auth passes, since the credential isn't
+forwarded by default. See
+[Forwarding the credential to your routes](#forwarding-the-credential-to-your-routes)
+for why that's opt-in and when it's safe to turn on.
+
+That's the full loop. Everything below is reference material for each piece
+in more depth — [Configuration](#configuration) for the complete options
+list, [Troubleshooting](#troubleshooting) if something here didn't match
+what you saw.
 
 ## Installation
 
@@ -490,6 +652,18 @@ curl -X POST http://localhost:3000/mcp \
   `allowMutations`, per-route `mcp: false`/`@McpExclude()`). If it's not
   excluded but still missing, Express route discovery couldn't resolve a
   complex mount pattern; use `mcp.register()`.
+- **A POST/PUT/PATCH or GET-with-query tool has an empty `inputSchema` and
+  calling it doesn't behave as expected.** This is the single most common
+  thing people hit first — see
+  [Quick start, step 4](#4-fix-empty-schemas-on-body-and-query-routes-read-this-first)
+  for why it happens on Express (not NestJS) and the exact `mcp.register()`
+  fix, including the GET/HEAD-specific `params` requirement.
+- **A file-upload route's tool always fails when called.** Routes using
+  `multer` or any other `multipart/form-data` upload handler get discovered
+  like any other route, but MCP tool arguments are JSON — there's no way to
+  send a file through a tool call. Exclude these routes
+  (`mcp.exclude("/your/upload/route")`) rather than leaving a tool that
+  errors on every call.
 - **A NestJS DTO field is missing from the schema.** Make sure
   `class-validator` is installed and the field has at least one decorator —
   undecorated fields aren't visible to the schema generator.
