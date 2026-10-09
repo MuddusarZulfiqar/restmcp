@@ -27,6 +27,11 @@ function jsonListener(req: http.IncomingMessage, res: http.ServerResponse) {
       res.end(JSON.stringify({ receivedBody: body }));
       return;
     }
+    if (req.method === "GET" && url.pathname === "/protected") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ receivedAuth: req.headers.authorization ?? null }));
+      return;
+    }
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   });
@@ -81,6 +86,24 @@ describe("createLoopbackInvoker", () => {
     const route: RouteDescriptor = { method: "GET", path: "/user-existence", params: [] };
     const result = await invoker.invoke(route, { username: "ada" });
     expect(result).toEqual({ receivedBody: { username: "ada" } });
+  });
+
+  it("forwards context.forwardHeaders to the underlying request when supplied", async () => {
+    const invoker = createLoopbackInvoker(jsonListener);
+    close = invoker.close;
+
+    const route: RouteDescriptor = { method: "GET", path: "/protected", params: [] };
+    const result = await invoker.invoke(route, {}, { forwardHeaders: { authorization: "Bearer test-token" } });
+    expect(result).toEqual({ receivedAuth: "Bearer test-token" });
+  });
+
+  it("forwards nothing when no context is given — default behavior is unchanged", async () => {
+    const invoker = createLoopbackInvoker(jsonListener);
+    close = invoker.close;
+
+    const route: RouteDescriptor = { method: "GET", path: "/protected", params: [] };
+    const result = await invoker.invoke(route, {});
+    expect(result).toEqual({ receivedAuth: null });
   });
 
   it("reuses the same ephemeral server across multiple calls", async () => {

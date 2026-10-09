@@ -82,6 +82,19 @@ test with `vitest`.
      semantics instead of `.find()`. Any future dedup/lookup logic touching
      `eligible` must resolve collisions the same direction everywhere it's
      looked up, not just where it's built.
+- `auth.forwardCredential` (core 0.1.3) is deliberately opt-in, default off.
+  Tool invocation not seeing the caller's original headers was always a
+  known, documented tradeoff — but it meant a real user's JWT-protected
+  routes (get-all-users, update-profile, etc.) were registered correctly yet
+  unusable via MCP, since their own `authenticated` middleware always 401'd
+  the internal call. `forwardCredential: true` forwards exactly one
+  well-defined header (`Authorization` for bearer/oauth2, the configured
+  `headerName` for apiKey) through `RouteInvoker`'s new optional
+  `InvokeContext` param — nothing for `custom`/`none`, since there's no
+  single header that means "the credential" for those. Keep this
+  single-header, type-gated shape if extending it; don't widen to "forward
+  all headers," which would reintroduce exactly the blind-forwarding risk
+  this was designed to avoid.
 - Secrets never flow into anything MCP-visible (tool names/descriptions/schemas).
   When adding a feature that touches config values, double check none of it can
   end up in a generated string sent to an MCP client.

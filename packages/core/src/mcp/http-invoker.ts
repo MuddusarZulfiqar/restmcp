@@ -62,7 +62,7 @@ export function createLoopbackInvoker(requestListener: HttpRequestListener): { i
     return listening;
   }
 
-  const invoke: RouteInvoker = async (route, args) => {
+  const invoke: RouteInvoker = async (route, args, context) => {
     const port = await ensureListening();
     const { url, body } = splitArgs(route, args);
     // HEAD responses (and, by the same convention, requests) must not carry
@@ -73,6 +73,12 @@ export function createLoopbackInvoker(requestListener: HttpRequestListener): { i
     const hasBody = route.method !== "HEAD" && Object.keys(body).length > 0;
     const payload = hasBody ? JSON.stringify(body) : undefined;
 
+    const headers: Record<string, string | number> = { ...context?.forwardHeaders };
+    if (payload) {
+      headers["content-type"] = "application/json";
+      headers["content-length"] = Buffer.byteLength(payload);
+    }
+
     return new Promise((resolveCall, rejectCall) => {
       const req = http.request(
         {
@@ -80,7 +86,7 @@ export function createLoopbackInvoker(requestListener: HttpRequestListener): { i
           port,
           method: route.method,
           path: url,
-          headers: payload ? { "content-type": "application/json", "content-length": Buffer.byteLength(payload) } : undefined,
+          headers: Object.keys(headers).length > 0 ? headers : undefined,
         },
         (res) => {
           const chunks: Buffer[] = [];

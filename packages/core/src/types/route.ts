@@ -55,7 +55,21 @@ export interface RouteDescriptor {
 }
 
 /**
+ * Context passed to a RouteInvoker for one specific tool call. Currently
+ * just the credential header(s) to forward, when auth.forwardCredential is
+ * enabled (see AuthConfig) — kept as its own type since more per-call,
+ * non-argument context may need to flow through here later.
+ */
+export interface InvokeContext {
+  forwardHeaders?: Record<string, string>;
+}
+
+/**
  * Adapter-supplied function that actually calls the underlying route handler
  * for a given route + resolved arguments, and returns a JSON-serializable result.
  */
-export type RouteInvoker = (route: RouteDescriptor, args: Record<string, unknown>) => Promise<unknown>;
+export type RouteInvoker = (
+  route: RouteDescriptor,
+  args: Record<string, unknown>,
+  context?: InvokeContext,
+) => Promise<unknown>;

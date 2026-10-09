@@ -33,6 +33,36 @@ function clientKey(req: IncomingMessage): string {
   return req.socket.remoteAddress ?? "unknown";
 }
 
+function headerValue(headers: IncomingMessage["headers"], name: string): string | undefined {
+  const value = headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+/**
+ * Builds the headers to forward to the underlying route on this tool call,
+ * per auth.forwardCredential (see AuthConfig) — only the one well-defined
+ * credential header for bearer/apiKey/oauth2; nothing for custom/none,
+ * since there's no single header that means "the credential" for those.
+ */
+function buildForwardHeaders(config: MCPConfig, req: IncomingMessage): Record<string, string> | undefined {
+  const auth = config.auth;
+  if (!auth?.forwardCredential) return undefined;
+
+  const headers: Record<string, string> = {};
+
+  if (auth.type === "bearer" || auth.type === "oauth2") {
+    const value = headerValue(req.headers, "authorization");
+    if (value) headers.authorization = value;
+  }
+  if (auth.type === "apiKey" || auth.type === "oauth2") {
+    const headerName = (auth.headerName ?? "x-api-key").toLowerCase();
+    const value = headerValue(req.headers, headerName);
+    if (value) headers[headerName] = value;
+  }
+
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
 /**
  * Reads the request body ourselves, enforcing `limit` against the actual
  * byte count as it arrives — not the (spoofable, or absent under chunked
@@ -193,7 +223,8 @@ export function createMcpRequestHandler(options: McpHandlerOptions): McpHttpHand
       }
 
       try {
-        const result = await options.invoke(tool.route, (args ?? {}) as Record<string, unknown>);
+        const forwardHeaders = buildForwardHeaders(options.config, req);
+        const result = await options.invoke(tool.route, (args ?? {}) as Record<string, unknown>, { forwardHeaders });
         return textResult(typeof result === "string" ? result : JSON.stringify(result ?? null));
       } catch (error) {
         return textResult(`Tool "${name}" failed: ${error instanceof Error ? error.message : String(error)}`, true);

@@ -1,6 +1,6 @@
 {
   "name": "@restmcp/nestjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "NestJS adapter: converts a Nest application's controllers into MCP tools and mounts POST /mcp",
   "keywords": [
     "mcp",
@@ -45,7 +45,7 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@restmcp/core": "0.1.2"
+    "@restmcp/core": "^0.1.3"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",

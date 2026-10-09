@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { describe, expect, it, afterEach } from "vitest";
 import { createMcpRequestHandler } from "./server.js";
 import type { MCPConfig } from "../types/config.js";
+import type { InvokeContext } from "../types/route.js";
 import type { ToolDefinition } from "../types/tool.js";
 
 const tools: ToolDefinition[] = [
@@ -62,6 +63,44 @@ function startServerNoBodyParsing(config: MCPConfig) {
   });
 }
 
+/** Like startServer, but records the context each invoke() call received, so tests can assert on it. */
+function startServerCapturingInvoke(config: MCPConfig) {
+  const calls: InvokeContext[] = [];
+  const handler = createMcpRequestHandler({
+    config,
+    getTools: () => tools,
+    invoke: async (_route, _args, context) => {
+      calls.push(context ?? {});
+      return { ok: true };
+    },
+  });
+  const server = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => {
+      const body = Buffer.concat(chunks);
+      let parsed: unknown;
+      try {
+        parsed = body.length > 0 ? JSON.parse(body.toString("utf-8")) : undefined;
+      } catch {
+        parsed = undefined;
+      }
+      void handler(req, res, parsed);
+    });
+  });
+
+  return new Promise<{ baseUrl: string; calls: InvokeContext[]; close: () => Promise<void> }>((resolveStart) => {
+    server.listen(0, "127.0.0.1", () => {
+      const port = (server.address() as AddressInfo).port;
+      resolveStart({
+        baseUrl: `http://127.0.0.1:${port}`,
+        calls,
+        close: () => new Promise((r) => server.close(() => r())),
+      });
+    });
+  });
+}
+
 async function rpc(baseUrl: string, method: string, headers: Record<string, string> = {}, bodyOverride?: string) {
   const payload = bodyOverride ?? JSON.stringify({ jsonrpc: "2.0", id: 1, method });
   const res = await fetch(`${baseUrl}/mcp`, {
@@ -70,6 +109,15 @@ async function rpc(baseUrl: string, method: string, headers: Record<string, stri
     body: payload,
   });
   return res;
+}
+
+async function callTool(baseUrl: string, toolName: string, requestHeaders: Record<string, string> = {}) {
+  return rpc(
+    baseUrl,
+    "tools/call",
+    requestHeaders,
+    JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: toolName, arguments: { id: "1" } } }),
+  );
 }
 
 describe("createMcpRequestHandler security enforcement", () => {
@@ -185,5 +233,56 @@ describe("createMcpRequestHandler security enforcement", () => {
     close = started.close;
 
     expect(entries.some((e) => /no auth configured/.test(e.message))).toBe(false);
+  });
+
+  describe("auth.forwardCredential", () => {
+    it("forwards the original Authorization header to invoke() when enabled with type bearer", async () => {
+      const started = await startServerCapturingInvoke({
+        name: "T",
+        version: "1.0.0",
+        auth: { type: "bearer", validate: async () => true, forwardCredential: true },
+      });
+      close = started.close;
+
+      await callTool(started.baseUrl, "get_thing", { authorization: "Bearer caller-token" });
+      expect(started.calls).toHaveLength(1);
+      expect(started.calls[0]!.forwardHeaders).toEqual({ authorization: "Bearer caller-token" });
+    });
+
+    it("forwards the configured apiKey header when enabled with type apiKey", async () => {
+      const started = await startServerCapturingInvoke({
+        name: "T",
+        version: "1.0.0",
+        auth: { type: "apiKey", headerName: "x-service-key", validate: async () => true, forwardCredential: true },
+      });
+      close = started.close;
+
+      await callTool(started.baseUrl, "get_thing", { "x-service-key": "secret-value" });
+      expect(started.calls[0]!.forwardHeaders).toEqual({ "x-service-key": "secret-value" });
+    });
+
+    it("forwards nothing by default (forwardCredential unset) — this is a deliberate opt-in, not a default", async () => {
+      const started = await startServerCapturingInvoke({
+        name: "T",
+        version: "1.0.0",
+        auth: { type: "bearer", validate: async () => true },
+      });
+      close = started.close;
+
+      await callTool(started.baseUrl, "get_thing", { authorization: "Bearer caller-token" });
+      expect(started.calls[0]!.forwardHeaders).toBeUndefined();
+    });
+
+    it("forwards nothing for type custom or none, even if enabled — there's no single well-defined credential header for those", async () => {
+      const started = await startServerCapturingInvoke({
+        name: "T",
+        version: "1.0.0",
+        auth: { type: "custom", validate: async () => true, forwardCredential: true },
+      });
+      close = started.close;
+
+      await callTool(started.baseUrl, "get_thing", { authorization: "Bearer caller-token" });
+      expect(started.calls[0]!.forwardHeaders).toBeUndefined();
+    });
   });
 });

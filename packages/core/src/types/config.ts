@@ -13,6 +13,18 @@ export interface AuthConfig {
   headerName?: string;
   /** For type "oauth2": the OAuth2 issuer's token introspection/verification is delegated to validate(). */
   validate?: (context: AuthContext) => Promise<boolean> | boolean;
+  /**
+   * Forward the original caller's credential (the `Authorization` header for
+   * `bearer`/`oauth2`, or the configured `headerName` header for `apiKey`) to
+   * the underlying route when invoking a tool. Off by default: tool
+   * invocation deliberately doesn't see the original request at all, so a
+   * route's own auth middleware always rejects it unless this is enabled.
+   * Only turn this on when your MCP-level credential IS the same credential
+   * your routes expect (e.g. the same JWT) — it's meaningless (and not
+   * forwarded) for `type: "custom"` or `"none"`, since there's no
+   * well-defined single header to forward for those.
+   */
+  forwardCredential?: boolean;
 }
 
 export interface ToolOverrideConfig {

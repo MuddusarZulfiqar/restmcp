@@ -234,6 +234,7 @@ interface MCPConfig {
     type: "none" | "apiKey" | "bearer" | "oauth2" | "custom";
     headerName?: string; // for apiKey, default "x-api-key"
     validate?: (context: { headers: Record<string, string | string[] | undefined>; credential?: string }) => Promise<boolean> | boolean;
+    forwardCredential?: boolean; // default false — see "Forwarding the credential to your routes"
   };
 
   tools?: {
@@ -288,6 +289,39 @@ MCPExpress.setup(app, {
 
 Secrets, tokens, and config values are never interpolated into any
 MCP-visible string (tool names, descriptions, schemas).
+
+### Forwarding the credential to your routes
+
+By default, invoking a tool does **not** forward the original caller's
+credential to the underlying route — only the MCP-level `auth` gate sees it.
+If a route has its *own* auth middleware (checking the same credential —
+e.g. the MCP caller's bearer token is literally your app's JWT), that
+middleware will reject the internal call, since it never receives the header.
+
+Set `forwardCredential: true` to forward it:
+
+```ts
+MCPExpress.setup(app, {
+  name: "My API",
+  version: "1.0.0",
+  auth: {
+    type: "bearer",
+    validate: async ({ credential }) => validateYourJWT(credential),
+    forwardCredential: true, // forwards the Authorization header as-is
+  },
+});
+```
+
+- `bearer`/`oauth2` forward the original `Authorization` header verbatim.
+- `apiKey` forwards the configured `headerName` header verbatim.
+- `custom`/`none` forward nothing — there's no single well-defined
+  credential header for those, so the flag has no effect.
+
+Only enable this when your MCP-level credential genuinely **is** the
+credential your routes expect. If they're different credentials (e.g. MCP
+uses an API key but routes expect user sessions), forwarding the API key as
+if it were a session won't authenticate anything — use a service-level
+credential via `config.middleware` on the route side instead.
 
 ## Tool filtering
 
@@ -468,11 +502,13 @@ curl -X POST http://localhost:3000/mcp \
   (any non-empty header passes); `custom` with no `validate()` always denies.
 - **Calling a tool doesn't see my request's auth/headers.** Tool invocation
   goes through your app's real middleware chain on a loopback connection, but
-  it does not forward the original MCP client's headers to that internal
-  request — the MCP-level `auth` config is the gate for who can call tools at
-  all. If a route needs user-specific downstream auth, that's a current
-  limitation to design around (e.g. a service-level credential via
-  `config.middleware`).
+  by default it does not forward the original MCP client's headers to that
+  internal request — the MCP-level `auth` config is the gate for who can call
+  tools at all. If your routes need to see the *same* credential for their
+  own auth (e.g. the MCP caller's bearer token IS the app's JWT), set
+  `auth.forwardCredential: true` (see [Authentication](#authentication)) to
+  forward it. If downstream auth is a genuinely different credential, use a
+  service-level one via `config.middleware` instead.
 - **`app.setGlobalPrefix()` routes show the wrong path.** Pass the same
   prefix as `globalPrefix` to `MCPModule.forRoot()`.
 
@@ -520,18 +556,18 @@ new config fields go, why route discovery never uses regex/source scanning).
 
 ### Publishing (for maintainers)
 
-Published: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core) `0.1.2`,
-[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express) `0.1.3`
-(0.1.1 had a real Express-5 route-discovery bug, and 0.1.2 a real
-mcp.register()-with-query-params bug — both documented in `CLAUDE.md`, both
-fixed and verified before republishing),
-[`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs) `0.1.1`,
+Published: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core) `0.1.3`,
+[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express) `0.1.4`,
+[`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs) `0.1.2`,
 and the CLI as
 [`@muddusarzulfiqar/restmcp`](https://www.npmjs.com/package/@muddusarzulfiqar/restmcp)
-`0.1.1` (its bin command is still the short `restmcp` — see [CLI](#cli); the
+`0.1.2` (its bin command is still the short `restmcp` — see [CLI](#cli); the
 package itself had to be scoped under a personal npm username because the
 unscoped name `restmcp` collided with an existing, unrelated package's
-name-similarity check).
+name-similarity check). Several real bugs found and fixed along the way —
+see `CLAUDE.md` for the full incident history. `@restmcp/express`/`nestjs`/
+the CLI depend on `@restmcp/core` via `^0.1.3` (not an exact pin), so future
+core patch releases reach them without needing every dependent republished.
 
 For a future release:
 
