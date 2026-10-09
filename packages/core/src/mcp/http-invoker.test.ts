@@ -20,6 +20,13 @@ function jsonListener(req: http.IncomingMessage, res: http.ServerResponse) {
       res.end(JSON.stringify({ created: body }));
       return;
     }
+    if (req.method === "GET" && url.pathname === "/user-existence") {
+      // Unusual but real: some routes read req.body on a GET request.
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf-8") || "{}");
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ receivedBody: body }));
+      return;
+    }
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   });
@@ -65,6 +72,15 @@ describe("createLoopbackInvoker", () => {
 
     const route: RouteDescriptor = { method: "GET", path: "/missing", params: [] };
     await expect(invoker.invoke(route, {})).rejects.toThrow(/404/);
+  });
+
+  it("sends a body on GET when there are leftover (non-path, non-query) args — real routes rely on this, and HTTP doesn't forbid it", async () => {
+    const invoker = createLoopbackInvoker(jsonListener);
+    close = invoker.close;
+
+    const route: RouteDescriptor = { method: "GET", path: "/user-existence", params: [] };
+    const result = await invoker.invoke(route, { username: "ada" });
+    expect(result).toEqual({ receivedBody: { username: "ada" } });
   });
 
   it("reuses the same ephemeral server across multiple calls", async () => {

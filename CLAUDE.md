@@ -63,6 +63,25 @@ test with `vitest`.
   versions exercised, and must fail safe (skip a route it can't resolve,
   never register one with a guessed/wrong path that would 404 on invocation)
   rather than crash or silently mis-path.
+- Two more real incidents, both found by actually wiring a real user's app up
+  and testing it (not just the test suite), fixed in core 0.1.2 / express 0.1.3:
+  1. `createLoopbackInvoker`'s `hasBody` check used to hard-exclude GET/HEAD
+     from ever carrying a body. HTTP doesn't forbid a GET body, and real
+     routes (e.g. one that reads `req.body` for historical reasons on a GET)
+     rely on it — only HEAD is actually excluded now.
+  2. `mcp.register()`'s `ManualRouteRegistration` had no way to mark a field
+     as a query param — every non-path field was treated as body-destined,
+     which got silently dropped by (1)'s predecessor for any GET route with
+     real query params. Fixed by adding `params?: ParamDescriptor[]` to the
+     registration shape (see `packages/express/src/adapter.ts`).
+  3. (core-only fix, same release) `generate.ts`'s route lookup used
+     `eligible.find(...)` (first match) while `routesToOpenAPI` resolves a
+     same-`(method, path)` collision last-wins — so a manually `register()`'d
+     override for an also-auto-discovered route had its name/schema silently
+     discarded. Fixed by building a `Map` with the same overwrite-forward
+     semantics instead of `.find()`. Any future dedup/lookup logic touching
+     `eligible` must resolve collisions the same direction everywhere it's
+     looked up, not just where it's built.
 - Secrets never flow into anything MCP-visible (tool names/descriptions/schemas).
   When adding a feature that touches config values, double check none of it can
   end up in a generated string sent to an MCP client.

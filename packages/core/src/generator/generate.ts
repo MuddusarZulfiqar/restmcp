@@ -75,10 +75,22 @@ export function generateTools(routes: RouteDescriptor[], config: MCPConfig): Gen
 
   const openapi = routesToOpenAPI(eligible, { title: config.name, version: config.version });
 
+  // routesToOpenAPI builds its paths dict by iterating `eligible` and
+  // overwriting per (method, path) — so on a collision, whichever route came
+  // *last* (e.g. a manually mcp.register()'d route added after discovered
+  // ones) wins the OpenAPI operation. The route lookup below must resolve
+  // collisions the same way, or a manual override's name/schema/mcp fields
+  // get silently discarded in favor of the auto-discovered route it was
+  // meant to replace.
+  const routeByKey = new Map<string, RouteDescriptor>();
+  for (const route of eligible) {
+    routeByKey.set(`${route.method} ${route.path}`, route);
+  }
+
   const prepared: NamedRoute<{ route: RouteDescriptor; description: string; schema: ReturnType<typeof buildInputSchema> }>[] = [];
 
   for (const { method, path, operation } of iterateOperations(openapi)) {
-    const route = eligible.find((r) => r.method === method && r.path === path);
+    const route = routeByKey.get(`${method} ${path}`);
     if (!route) continue;
 
     const override = config.tools?.overrides?.[`${method} ${path}`];

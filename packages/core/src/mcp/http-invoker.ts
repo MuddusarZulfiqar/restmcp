@@ -65,7 +65,12 @@ export function createLoopbackInvoker(requestListener: HttpRequestListener): { i
   const invoke: RouteInvoker = async (route, args) => {
     const port = await ensureListening();
     const { url, body } = splitArgs(route, args);
-    const hasBody = route.method !== "GET" && route.method !== "HEAD" && Object.keys(body).length > 0;
+    // HEAD responses (and, by the same convention, requests) must not carry
+    // a body — but GET carrying one is unusual, not invalid: HTTP doesn't
+    // forbid it, and real routes (e.g. a GET that validates a field via
+    // req.body for historical reasons) do rely on it. Don't silently drop
+    // leftover args just because the method is GET.
+    const hasBody = route.method !== "HEAD" && Object.keys(body).length > 0;
     const payload = hasBody ? JSON.stringify(body) : undefined;
 
     return new Promise((resolveCall, rejectCall) => {

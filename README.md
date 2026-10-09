@@ -133,7 +133,16 @@ mcp.register({
   path: "/legacy/report",
   name: "get_legacy_report",
   description: "Fetch the legacy report",
-  inputSchema: { type: "object", properties: {}, required: [] },
+  inputSchema: {
+    type: "object",
+    properties: { format: { type: "string" } },
+    required: [],
+  },
+  // Path params (":id" etc.) are inferred from `path` automatically — only
+  // declare `params` for query params, or to override a path param's type.
+  // Without this, "format" above would be treated as a body field and
+  // silently dropped on a GET/HEAD call.
+  params: [{ name: "format", in: "query", type: "string", required: false }],
 });
 ```
 
@@ -511,10 +520,11 @@ new config fields go, why route discovery never uses regex/source scanning).
 
 ### Publishing (for maintainers)
 
-Published: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core) `0.1.1`,
-[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express) `0.1.2`
-(0.1.1 had a real bug — see `CLAUDE.md` — fixed and verified against a real
-Express 5 install before republishing),
+Published: [`@restmcp/core`](https://www.npmjs.com/package/@restmcp/core) `0.1.2`,
+[`@restmcp/express`](https://www.npmjs.com/package/@restmcp/express) `0.1.3`
+(0.1.1 had a real Express-5 route-discovery bug, and 0.1.2 a real
+mcp.register()-with-query-params bug — both documented in `CLAUDE.md`, both
+fixed and verified before republishing),
 [`@restmcp/nestjs`](https://www.npmjs.com/package/@restmcp/nestjs) `0.1.1`,
 and the CLI as
 [`@muddusarzulfiqar/restmcp`](https://www.npmjs.com/package/@muddusarzulfiqar/restmcp)

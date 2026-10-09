@@ -1,6 +1,6 @@
 {
   "name": "@restmcp/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Framework-agnostic pipeline: routes -> OpenAPI -> JSON Schema -> MCP tools -> MCP server",
   "keywords": [
     "mcp",

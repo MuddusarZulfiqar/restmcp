@@ -81,4 +81,24 @@ describe("generateTools", () => {
     const result = generateTools(withSelfRoute, config({ endpoint: "/api/mcp-gateway" }));
     expect(result.tools.some((t) => t.route.path === "/api/mcp-gateway")).toBe(false);
   });
+
+  it("a later route wins on (method, path) collision — e.g. a manually mcp.register()'d override for an also-auto-discovered route", () => {
+    // Regression: the OpenAPI layer already resolves same (method, path)
+    // collisions last-wins (routesToOpenAPI overwrites per key as it
+    // iterates); the tool-building lookup used to resolve them first-wins
+    // instead, so a manual override placed after the auto-discovered route
+    // it was meant to replace had its name/description/params silently
+    // discarded in favor of the discovered one.
+    const autoDiscovered: RouteDescriptor = { method: "GET", path: "/search", params: [] };
+    const manualOverride: RouteDescriptor = {
+      method: "GET",
+      path: "/search",
+      params: [{ name: "q", in: "query", type: "string", required: false }],
+      mcp: { name: "search_things", description: "Search things" },
+    };
+    const result = generateTools([autoDiscovered, manualOverride], config());
+    expect(result.tools).toHaveLength(1);
+    expect(result.tools[0]!.name).toBe("search_things");
+    expect(result.tools[0]!.route).toBe(manualOverride);
+  });
 });

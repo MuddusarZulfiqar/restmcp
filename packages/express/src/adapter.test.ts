@@ -46,6 +46,9 @@ function buildApp() {
   ];
 
   app.get("/users", (_req, res) => res.json(users));
+  // Must come before "/users/:id" — Express matches route registration
+  // order, and ":id" would otherwise swallow "search" as a param value.
+  app.get("/users/search", (req, res) => res.json({ matches: users.filter((u) => u.email === req.query.email) }));
   app.get("/users/:id", (req, res) => {
     const user = users.find((u) => u.id === req.params.id);
     if (!user) return res.status(404).json({ error: "not found" });
@@ -157,5 +160,23 @@ describe("MCPExpress.setup", () => {
     expect(tool).toBeDefined();
     expect(tool?.description).toBe("Retrieve customer by id");
     expect(tools.some((t) => t.name === "get_user")).toBe(false);
+  });
+
+  it("mcp.register() with explicit query params actually sends them as a query string, not a dropped body field", async () => {
+    const app = buildApp();
+    const instance = setup(app, { name: "Test API", version: "1.0.0" });
+    instance.register({
+      method: "GET",
+      path: "/users/search",
+      name: "search_users",
+      description: "Search users by email",
+      inputSchema: { type: "object", properties: { email: { type: "string" } }, required: [] },
+      params: [{ name: "email", in: "query", type: "string", required: false }],
+    });
+    const { baseUrl } = await startServer(app);
+
+    const res = await rpc(baseUrl, "tools/call", { name: "search_users", arguments: { email: "grace@example.com" } });
+    const content = JSON.parse(res.body.result!.content![0]!.text);
+    expect(content.matches).toEqual([{ id: "2", name: "Grace", email: "grace@example.com" }]);
   });
 });

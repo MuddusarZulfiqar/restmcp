@@ -5,6 +5,7 @@ import {
   type MCPConfig,
   type McpToolsManifest,
   type OpenAPIDocument,
+  type ParamDescriptor,
   type RouteDescriptor,
   type ToolDefinition,
   type GenerationResult,
@@ -23,6 +24,15 @@ export interface ManualRouteRegistration {
   name?: string;
   description?: string;
   inputSchema?: JSONSchema;
+  /**
+   * Explicit path/query param declarations — needed whenever a registered
+   * route takes query params, since without this every non-path field in
+   * `inputSchema` would be treated as body-destined (and silently dropped
+   * on a GET/HEAD request that has no path-param-matching field for it).
+   * Path params named in `path` (":id" etc.) are inferred automatically and
+   * don't need to be repeated here unless you want to override their type.
+   */
+  params?: ParamDescriptor[];
 }
 
 interface ToolOverride {
@@ -106,15 +116,18 @@ function createInstance(app: Application, config: MCPConfig): InternalInstance {
       exclusions.add(key(method, path));
     },
     register(route) {
+      const pathParamNames = new Set((route.path.match(/:[A-Za-z0-9_]+/g) ?? []).map((p) => p.slice(1)));
+      const explicit = route.params ?? [];
+      const explicitNames = new Set(explicit.map((p) => p.name));
+
+      const derivedPathParams: ParamDescriptor[] = [...pathParamNames]
+        .filter((name) => !explicitNames.has(name))
+        .map((name) => ({ name, in: "path" as const, type: "string" as const, required: true }));
+
       manualRoutes.push({
         method: route.method,
         path: route.path,
-        params: (route.path.match(/:[A-Za-z0-9_]+/g) ?? []).map((p) => ({
-          name: p.slice(1),
-          in: "path" as const,
-          type: "string" as const,
-          required: true,
-        })),
+        params: [...derivedPathParams, ...explicit],
         mcp: { name: route.name, description: route.description, inputSchema: route.inputSchema },
       });
     },
